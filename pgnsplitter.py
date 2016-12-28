@@ -1,6 +1,6 @@
 import chess.pgn
 
-pgn = open("game.pgn")
+pgn = open("GameInputs/KingBase2016-03-A00-A39.pgn")
 
 first_game = chess.pgn.read_game(pgn)
 
