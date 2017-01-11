@@ -1,8 +1,8 @@
-import chess, chess.pgn
-import numpy
+import chess 
+import chess.pgn
+import numpy as np
 import sys
 import os
-import multiprocessing
 import itertools
 import random
 import h5py
@@ -29,7 +29,7 @@ def getAllPieces(board):
 	return board.pieces(chess.PAWN, chess.WHITE) |	board.pieces(chess.ROOK, chess.WHITE) |	board.pieces(chess.KNIGHT, chess.WHITE)|board.pieces(chess.BISHOP, chess.WHITE)|board.pieces(chess.QUEEN, chess.WHITE)|board.pieces(chess.KING, chess.WHITE)|board.pieces(chess.PAWN, chess.BLACK)|board.pieces(chess.ROOK, chess.BLACK)|board.pieces(chess.KNIGHT, chess.BLACK)|board.pieces(chess.BISHOP, chess.BLACK) |board.pieces(chess.QUEEN, chess.BLACK)|board.pieces(chess.KING, chess.BLACK)
 
 def bb2array(b, flip=False):
-	x = numpy.zeros(64, dtype=numpy.int8)
+	x = np.zeros(64, dtype=np.int8)
 	
 	for pos, piece in enumerate(getAllPieces(b)):
 		if piece != 0:
@@ -46,7 +46,6 @@ def bb2array(b, flip=False):
 
 	return x
 
-
 def parse_game(g):
 	
 	rm = {'1-0': 1, '0-1': -1, '1/2-1/2': 0}
@@ -54,15 +53,14 @@ def parse_game(g):
 	if r not in rm:
 		return None
 	y = rm[r]
-	# print >> sys.stderr, 'result:', y
-
-	# Generate all boards
+	
 	gn = g.end()
 	if not gn.board().is_game_over():
 		return None
 
 	gns = []
 	moves_left = 0
+	
 	while gn:
 		gns.append((moves_left, gn, gn.board().turn == 0))
 		gn = gn.parent
@@ -80,6 +78,7 @@ def parse_game(g):
 	x = bb2array(b, flip=flip)
 	b_parent = gn.parent.board()
 	x_parent = bb2array(b_parent, flip=(not flip))
+	
 	if flip:
 		y = -y
 

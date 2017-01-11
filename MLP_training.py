@@ -1,26 +1,27 @@
-import numpy
+import numpy as np
 import theano
 import theano.tensor as T
 import os
-from sklearn.cross_validation import train_test_split
 import pickle
 import random
 import itertools
-from theano.tensor.nnet import sigmoid
 import scipy.sparse
 import h5py
 import math
 import time
 
+from sklearn.cross_validation import train_test_split
+from theano.tensor.nnet import sigmoid
+
 MINIBATCH_SIZE = 2000
 
-rng = numpy.random
+rng = np.random
 
 def floatX(x):
     
-    return numpy.asarray(x, dtype=theano.config.floatX)
+    return np.asarray(x, dtype=theano.config.floatX)
 
-def load_data(dir='/mnt/games'):    #Bitmaps random ad GM games
+def load_data(dir='/home/matthia/Desktop/MSc.-Thesis/Games'):    #Bitmaps random ad GM games
     
     for fn in os.listdir(dir):
         if not fn.endswith('.hdf5'):
@@ -31,7 +32,6 @@ def load_data(dir='/mnt/games'):    #Bitmaps random ad GM games
             yield h5py.File(fn, 'r')
         except:
             print 'could not read', fn
-
 
 def get_data(series=['x', 'xr']):   #Loading triple
     
@@ -46,9 +46,9 @@ def get_data(series=['x', 'xr']):   #Loading triple
 
     def stack(vectors):     #stacks out of the data
         if len(vectors[0].shape) > 1:
-            return numpy.vstack(vectors)
+            return np.vstack(vectors)
         else:
-            return numpy.hstack(vectors)
+            return np.hstack(vectors)
 
     data = [stack(d) for d in data]
 
@@ -60,11 +60,12 @@ def get_data(series=['x', 'xr']):   #Loading triple
     
     return data
 
-
 def get_parameters(n_in=None, n_hidden_units=2048, n_hidden_layers=None, Ws=None, bs=None):
     
     if Ws is None or bs is None:
+
         print 'initializing Ws & bs'
+        
         if type(n_hidden_units) != list:
             n_hidden_units = [n_hidden_units] * n_hidden_layers
         else:
@@ -74,9 +75,9 @@ def get_parameters(n_in=None, n_hidden_units=2048, n_hidden_layers=None, Ws=None
         bs = []
 
         def W_values(n_in, n_out):
-            return numpy.asarray(rng.uniform(
-                low=-numpy.sqrt(6. / (n_in + n_out)),
-                high=numpy.sqrt(6. / (n_in + n_out)),
+            return np.asarray(rng.uniform(
+                low=-np.sqrt(6. / (n_in + n_out)),
+                high=np.sqrt(6. / (n_in + n_out)),
                 size=(n_in, n_out)), dtype=theano.config.floatX)
 
         
@@ -89,9 +90,9 @@ def get_parameters(n_in=None, n_hidden_units=2048, n_hidden_layers=None, Ws=None
                 n_out_2 = n_hidden_units[l]
                 W = W_values(n_in_2, n_out_2)
                 gamma = 0.1 # initialize it to slightly positive so the derivative exists
-                b = numpy.ones(n_out_2, dtype=theano.config.floatX) * gamma
+                b = np.ones(n_out_2, dtype=theano.config.floatX) * gamma
             else:
-                W = numpy.zeros(n_in_2, dtype=theano.config.floatX)
+                W = np.zeros(n_in_2, dtype=theano.config.floatX)
                 b = floatX(0.)
             Ws.append(W)
             bs.append(b)
@@ -164,24 +165,28 @@ def get_training_model(Ws_s, bs_s, dropout=False, lambd=10.0, kappa=1.0):
         reg += lambd * (x ** 2).mean()
 
     loss = loss_a + loss_b + loss_c
+    
     return xc_s, xr_s, xp_s, loss, reg, loss_a, loss_b, loss_c
 
-
 def nesterov_updates(loss, all_params, learn_rate, momentum):
+    
     updates = []
     all_grads = T.grad(loss, all_params)
+    
     for param_i, grad_i in zip(all_params, all_grads):
         # generate a momentum parameter
         mparam_i = theano.shared(
-            numpy.array(param_i.get_value()*0., dtype=theano.config.floatX))
+            np.array(param_i.get_value()*0., dtype=theano.config.floatX))
         v = momentum * mparam_i - learn_rate * grad_i
         w = param_i + momentum * v - learn_rate * grad_i
         updates.append((param_i, w))
         updates.append((mparam_i, v))
+    
     return updates
 
 
 def get_function(Ws_s, bs_s, dropout=False, update=False):
+    
     xc_s, xr_s, xp_s, loss_f, reg_f, loss_a_f, loss_b_f, loss_c_f = get_training_model(Ws_s, bs_s, dropout=dropout)
     obj_f = loss_f + reg_f
 
@@ -195,6 +200,7 @@ def get_function(Ws_s, bs_s, dropout=False, update=False):
         updates = []
 
     print 'compiling function'
+    
     f = theano.function(
         inputs=[xc_s, xr_s, xp_s, learning_rate],
         outputs=[loss_f, reg_f, loss_a_f, loss_b_f, loss_c_f],
@@ -204,7 +210,9 @@ def get_function(Ws_s, bs_s, dropout=False, update=False):
     return f
 
 def train():
+
     Xc_train, Xc_test, Xr_train, Xr_test, Xp_train, Xp_test = get_data(['x', 'xr', 'xp'])
+    
     for board in [Xc_train[0], Xp_train[0]]:
         for row in xrange(8):
             print ' '.join('%2d' % x for x in board[(row*8):((row+1)*8)])
@@ -224,6 +232,7 @@ def train():
     t0 = time.time()
     
     i = 0
+    
     while True:
         i += 1
         learning_rate = floatX(base_learning_rate * math.exp(-(time.time() - t0) / 86400))
@@ -249,7 +258,6 @@ def train():
                     return [z.get_value(borrow=True) for z in zs]
                 pickle.dump((values(Ws_s), values(bs_s)), f)
                 f.close()
-
 
 if __name__ == '__main__':
     train()
