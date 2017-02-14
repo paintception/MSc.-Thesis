@@ -16,9 +16,9 @@ def load_game():
 	return game
 
 def store_info(p, e):
-	
-	data = np.stack((p, e), axis=-1)
-	h5f = h5py.File('Datasets/Games.h5', 'w')
+
+	d = np.stack((p, e), axis=-1)
+	d.dump("Datasets/Model.dat")
 
 def process_game(game):
 
