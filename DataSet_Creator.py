@@ -1,4 +1,5 @@
 #TODO Add Stockfish move and loop over all the games in pgn
+# Check also movetime
 
 from __future__ import division
 
@@ -6,7 +7,7 @@ import chess
 import chess.pgn
 import chess.uci
 import numpy as np
-import pickle
+import h5py
 
 def load_game():
 	pgn = open("ExampleGame.pgn")
@@ -14,15 +15,15 @@ def load_game():
 
 	return game
 
-def store_info(board, evaluation):	
-
-	b = np.asarray(board)
-	e = np.asarray(evaluation)
-
-	pickle.dump(b, open("Gm_Positions.p", "wb"))
-	pickle.dump(e, open("Gm_Evaluations.p", "wb"))
+def store_info(p, e):
 	
+	data = np.stack((p, e), axis=-1)
+	h5f = h5py.File('Datasets/Games.h5', 'w')
+
 def process_game(game):
+
+	positions = []
+	evaluations = []
 
 	engine = chess.uci.popen_engine("/usr/games/stockfish")
 	engine.uci()
@@ -49,13 +50,22 @@ def process_game(game):
 		GM_move = str(node.board().san(next_node.move))
 		GM_board.push_san(GM_move)
 
-		store_info(GM_board, stock_evaluation)
+		positions.append(GM_board)
+		evaluations.append(stock_evaluation)
 
 		node = next_node
 
+	return(positions, evaluations)
+
 def main():
+	
 	game = load_game()
-	process_game(game)
+	d = process_game(game)
+
+	positions = np.asarray(d[0])
+	evaluations = np.asarray(d[1])
+
+	store_info(positions, evaluations)
 
 if __name__ == '__main__':
 	main()
