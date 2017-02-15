@@ -8,6 +8,7 @@ import chess.pgn
 import chess.uci
 import pandas as pd
 import numpy as np
+import time
 
 columns = ['WhiteP','WhiteR','WhiteN','WhiteB','WhiteQ','WhiteK',
 'BlackP','BlackR','BlackN','BlackB','BlackQ','BlackK','Evaluation']
@@ -64,57 +65,69 @@ def extract_bitmaps(board, e, iter):
 	int_q = [int(x) for x in q_input_vec]
 	int_k = [int(x) for x in k_input_vec]
 
-	column = "WhiteP"
-	wp = int_P
-	df.at[iter, column] = wp
+	for i in int_P:
+		column = "WhiteP"
+		wp = bin(i)[2:]
+		df.at[iter, column] = wp
 
-	column = "WhiteR"
-	wr = int_R
-	df.at[iter, column] = wr
+	for i in int_R:
+		column = "WhiteR"
+		wr = bin(i)[2:]
+		df.at[iter, column] = wr
 
-	column = "WhiteN"
-	wn = int_N
-	df.at[iter, column] = wn
+	for i in int_N:
+		column = "WhiteN"
+		wn = bin(i)[2:]
+		df.at[iter, column] = wn
 	
-	column = "WhiteB"
-	wb = int_B
-	df.at[iter, column] = wb
+	for i in int_B:
+		column = "WhiteB"
+		wb = bin(i)[2:]
+		df.at[iter, column] = wb
 	
-	column = "WhiteQ"
-	wq = int_Q
-	df.at[iter, column] = wq
+	for i in int_Q:
+		column = "WhiteQ"
+		wq = bin(i)[2:]
+		df.at[iter, column] = wq
 	
-	column = "WhiteK"
-	wk = int_K
-	df.at[iter, column] = wk
+	for i in int_K:
+		column = "WhiteK"
+		wk = bin(i)[2:]
+		df.at[iter, column] = wk
 	
-	column = "BlackP"
-	bp = int_p
-	df.at[iter, column] = bp
+	for i in int_p:
+		column = "BlackP"
+		bp = bin(i)[2:]
+		df.at[iter, column] = bp
 	
-	column = "BlackR"
-	br = int_r
-	df.at[iter, column] = br
+	for i in int_r:
+		column = "BlackR"
+		br = bin(i)[2:]
+		df.at[iter, column] = br
 
-	column = "BlackN"
-	bn = int_n
-	df.at[iter, column] = bn
+	for i in int_n:
+		column = "BlackN"
+		bn = bin(i)[2:]
+		df.at[iter, column] = bn
 
-	column = "BlackB"
-	bb = int_b
-	df.at[iter, column] = bb
+	for i in int_b:
+		column = "BlackB"
+		bb = bin(i)[2:]
+		df.at[iter, column] = bb
 	
-	column = "BlackQ"
-	bq = int_q
-	df.at[iter, column] = bq
+	for i in int_q:
+		column = "BlackQ"
+		bq = bin(i)[2:]
+		df.at[iter, column] = bq
 
-	column = "BlackK"
-	bk = int_k
-	df.at[iter, column] = bk
+	for i in int_k:
+		column = "BlackK"
+		bk = bin(i)[2:]
+		df.at[iter, column] = bk
 
 	column = "Evaluation"
-	wp = e
-	df.at[iter, column] = wp
+	evaluation = e
+	df.at[iter, column] = evaluation
 
 	df.to_csv('Datasets/Data.csv')
 
