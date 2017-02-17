@@ -8,18 +8,20 @@ import chess.pgn
 import chess.uci
 import pandas as pd
 import numpy as np
-import time
+import os
 
 columns = ['WhiteP','WhiteR','WhiteN','WhiteB','WhiteQ','WhiteK',
 'BlackP','BlackR','BlackN','BlackB','BlackQ','BlackK','Evaluation']
 
 df = pd.DataFrame([], columns=columns)
+directory = '/home/matthia/Desktop/MSc.-Thesis/SetGames/FilteredGames'
 
 def load_game():
-	pgn = open("ExampleGame.pgn")
-	game = chess.pgn.read_game(pgn)
-
-	return game
+	for root, dirs, filenames in os.walk(directory):
+		for f in filenames:
+			pgn = open(os.path.join(root, f), 'r')
+			game = chess.pgn.read_game(pgn)
+			process_game(game)
 
 def extract_bitmaps(board, e, iter):
 
@@ -157,20 +159,18 @@ def process_game(game):
 		Stock_move = b_m[0]
 
 		info = info_handler.info["score"][1]
-		stock_evaluation = info[0]/100 
+		
+		if info[0] is not None:
+			stock_evaluation = info[0]/100 
+			print(stock_evaluation)
 
 		next_node = node.variation(0)
 		GM_move = str(node.board().san(next_node.move))
 		GM_board.push_san(GM_move)
 
-		pos_dic = extract_bitmaps(GM_board, stock_evaluation, iter)
+		extract_bitmaps(GM_board, stock_evaluation, iter)
 		iter += 1 
 		node = next_node
 
-def main():
-	
-	game = load_game()
-	process_game(game)
-
-if __name__ == '__main__':
-	main()
+if __name__ == '__main__':	
+	load_game()
