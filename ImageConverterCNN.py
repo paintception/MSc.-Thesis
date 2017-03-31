@@ -1,16 +1,15 @@
 import os
 import numpy as np
 import cv2
-
-from sklearn import preprocessing
+import time
 
 def write_pic(data, path, name):
 	
 	tmp=np.asarray(data, dtype=np.uint8)
-	tmp = cv2.resize(tmp, (64, 64))	#Noise added to get bigger pictures
+	#tmp = cv2.resize(tmp, (8, 8))	#Noise added to get bigger pictures
 	cv2.imwrite(path+name+'.png', tmp)
 
-	print "Image Saved"
+	#print "Image Saved"
 
 def do_path(path):
 	try:
@@ -31,10 +30,13 @@ def main():
 
 	print "Reading the data"
 
-	X = np.load('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/Positions.npy')
-	y = np.load('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/Labels.npy')
+	X = np.load('//home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/15000Positions.npy')
+	y = np.load('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/15000Positions.npy')
 
-	X = preprocessing.scale(X)
+	print len(X)
+	print len(y)
+
+	time.sleep(5)
 
 	General_X = []
 
@@ -47,25 +49,36 @@ def main():
 
 	General_X = np.asarray(General_X)
 
-	path='/home/matthia/Desktop/MSc.-Thesis/CNNImages/BasicEvaluation/'
+	#np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/64_Representation/64_125000Positions.npy', General_X)
+	#np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/64_Representation/64_125000Labels.npy', y)
+
+	path='/home/matthia/Desktop/MSc.-Thesis/CNNImages/SplittedImages/'
 	
 	do_path(path)
 
+	new_ev = []
+
 	for ind, pos in enumerate(General_X):
-		
-		print "Making Images"
 
 		evaluation = y[ind]
 		pos=fix_pic(pos)
-		
+
 		if evaluation == "Equal":
 			tmp_path=path+"Equal/"
-		elif evaluation == "WW":
-			tmp_path=path+"WW/"
-		elif evaluation == "BW":
-			tmp_path=path+"BW/"
+			write_pic(pos, tmp_path, 'position'+str(ind))
+			#write_pic(pos, path, 'position'+str(ind))
 		
-		write_pic(pos, tmp_path, 'position'+str(ind))
+		elif evaluation == "WW":
+			#new_ev.append(evaluation)
+			tmp_path=path+"WW/"
+			write_pic(pos, tmp_path, 'position'+str(ind))
+			#write_pic(pos, path, 'position'+str(ind))
+
+		elif evaluation == "BW":
+			#new_ev.append(evaluation)
+			tmp_path=path+"BW/"
+			write_pic(pos, tmp_path, 'position'+str(ind))
+			#write_pic(pos, path, 'position'+str(ind))
 		
 		"""
 		if evaluation >= - 1 and evaluation <=1:
@@ -75,7 +88,6 @@ def main():
 		elif evaluation < 1:
 			tmp_path=path+"BW/"
 		"""
-		#write_pic(pos, tmp_path, 'position'+str(ind))
 		"""
 		if evaluation >= - 0.5 and evaluation < 0.5:
 			tmp_path=path+"Equal/"
@@ -92,6 +104,7 @@ def main():
 		elif evaluation < -4:
 			tmp_path=path+"BW/"
 		"""
+		
 if __name__ == '__main__':
 	main()
 	
