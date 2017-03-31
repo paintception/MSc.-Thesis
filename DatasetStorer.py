@@ -1,4 +1,5 @@
 import numpy as np
+import time
 
 def read_data():
 
@@ -7,7 +8,7 @@ def read_data():
 	General_X = []
 	ind=1
 
-	with open("/home/matthia/Desktop/MSc.-Thesis/Datasets/Newest.txt", 'r') as f:
+	with open("/home/matthia/Desktop/MSc.-Thesis/Datasets/C2059.txt", 'r') as f:
 
 		print "Reading the Data"
 
@@ -22,20 +23,59 @@ def read_data():
 
 	X = np.asarray(X)
 	
-	new_y = []
+	print "Flipping the Data"
 
-	for evaluation in y:
-		if evaluation >= - 1 and evaluation <= 1:
+	odd_numbers = [k for a,k in enumerate(y) if a%2 != 0]
+	even_numbers = [k for a,k in enumerate(y) if a%2 == 0]
+	flipped_odd = [-a for a in odd_numbers]
+
+	y = []
+
+	for i,j in zip(even_numbers, flipped_odd):
+		y.append(i)
+		y.append(j)
+
+
+	if len(X) > len(y):
+		X = X.pop()
+
+	equal_cnt = 0
+	WW_cnt = 0
+	BW_cnt = 0	
+
+	new_y = []
+	Pos_X = []
+
+	for pos, evaluation in zip(X,y):
+		if evaluation >= - 1.5 and evaluation <= 1.5 and equal_cnt <= 25000:
+			equal_cnt += 1
+			Pos_X.append(pos)
 			new_y.append("Equal")
-		elif evaluation > 1:
+			print "Equal Position Created"
+	
+		elif evaluation > 1.5 and WW_cnt <= 25000:
+			WW_cnt += 1
+			Pos_X.append(pos)
 			new_y.append("WW")
-		elif evaluation < 1:
+			print "WW Position Created"
+		
+		elif evaluation < 1.5 and BW_cnt <= 25000:
+			BW_cnt += 1
+			Pos_X.append(pos)
 			new_y.append("BW")
+			print "BW Position Created"
 
 	new_y = np.asarray(new_y)
 
-	np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/Positions.npy', X)
-	np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/Labels.npy', new_y)
+	print "Equal Positions: ", equal_cnt
+	print "WW Positions: ", WW_cnt
+	print "BW Positions: ", BW_cnt
+
+	np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/15000Positions.npy', Pos_X)
+	np.save('/home/matthia/Desktop/MSc.-Thesis/Datasets/Numpy/15000Labels.npy', new_y)
+
+	print len(Pos_X)
+	print len(new_y)
 
 def main():
 	read_data()
