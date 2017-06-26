@@ -1,9 +1,5 @@
 #Create more data
 #Structure of the Net
-#Use Tanh
-#Text Vali and Marco
-#Github
-#Save Results to TXT
 
 import tensorflow as tf
 import numpy as np 
@@ -26,12 +22,12 @@ def biasVariable(shape):
     initial = tf.constant(0.1, shape = shape);
     return tf.Variable(initial);
   
-nr_epochs = 10000
-nr_input = 768;
+nr_epochs = 100000
+nr_input = 64;
 nr_output = 1;
-nr_hidden = 1048;
-nr_hidden2= 1048; 
-lr = 0.01;
+nr_hidden = 500;
+nr_hidden2= 500; 
+lr = 0.001;
  
 data_input = tf.placeholder(dtype = np.float32, shape = [None, nr_input]);
 data_target = tf.placeholder(dtype = np.float32, shape = [None, nr_output]);
@@ -75,9 +71,12 @@ with open("Datasets/Newest.txt", 'r') as f:
 X = np.asarray(X)
 Y = np.asarray(y)
 
-General_X=X
+General_X = []
 
 """
+Complete Representation of the Chess Board
+"""
+
 for i in X:
     g = i.reshape((12,64))
     tmp = np.zeros(g.shape[1])
@@ -86,7 +85,6 @@ for i in X:
     General_X.append(tmp)
 
 General_X = np.asarray(General_X)
-"""
 
 x, X_test2, y, y_test2 = train_test_split(General_X, Y, test_size=0.10, random_state=42)
 
@@ -193,6 +191,13 @@ for i in xrange(0, nr_epochs):
         print "we got "+str(np.asarray(errs1).mean())+" at epoch "+str(i)+" on the test set"
         print "we got "+str(np.asarray(errs2).mean())+" at epoch "+str(i)+" on the validation set"
         print "we got "+str(np.asarray(errs3).mean())+" at epoch "+str(i)+" on the data set"
+
+datafile_path = "/home/matthia/Desktop/MSc.-Thesis/Results.txt"
+datafile_id = open(datafile_path, 'w+')
+data = np.array([Training_Loss, Test_Loss, Validation_Loss])
+data = data.T
+np.savetxt(datafile_id, data, fmt=['%d','%d','%d'])
+datafile_id.close()
 
 plt.plot(Training_Loss, "r", label="Training Loss")
 plt.plot(Test_Loss, "b", label="Testing Loss")
