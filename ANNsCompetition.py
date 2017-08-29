@@ -11,6 +11,8 @@ import time
 import chess
 import random
 
+import numpy as np 
+
 class GameHandler(object):
 
 	def __init__(self):
@@ -21,6 +23,16 @@ class GameHandler(object):
 		self.MlpWins = 0
 		self.CnnWins = 0
 		self.Draws = 0
+
+	def evaluatePositionMlp(self, board, model, tmp_move, boardToPlay):
+
+		optimalMoves = []
+
+		pos = np.expand_dims(board, axis=0)
+		out = model.predict(pos)
+
+		#print np.argmax(out)
+		return np.argmax(out)
 
 	def loadMlpClassificationModel(self):
 
@@ -105,16 +117,33 @@ class GameHandler(object):
 		else:
 			pass
 
-	def makeAllMoves(self, boardToPlay, setMoves):
+	def makeAllMovesMlp(self, boardToPlay, setMoves, MlpModel):
 		
+		optimalOutput = 0
+		candidateMoves = []
+
 		while len(setMoves) != 0:
 			tmp_move = random.choice(setMoves)
 			tmpBoard = deepcopy(boardToPlay)
 
 			tmpBoard.push(tmp_move)
 			shapedBoardMlp = self.shapeBoardMlp(tmpBoard)
+			out = self.evaluatePositionMlp(shapedBoardMlp, MlpModel, tmp_move, tmpBoard)
 			setMoves.remove(tmp_move)
+
+			if out > optimalOutput:
+				candidateMoves = [] 
+				optimalOutput = out
+				candidateMoves.append(tmp_move)
 			
+			elif out == optimalOutput:
+				candidateMoves.append(tmp_move)
+
+			#print "Output to beat: ", optimalOutput
+			#print "Candidate Moves: ", candidateMoves
+
+		return candidateMoves
+
 	def startGame(self, boardToPlay, MlpModel):
 
 		#White = self.chooseWhite()
@@ -128,8 +157,15 @@ class GameHandler(object):
 			while not boardToPlay.is_game_over(claim_draw=True):
 
 				setMoves = list(self.createSetMoves(boardToPlay))
-				self.makeAllMoves(boardToPlay, setMoves)
-				
+				candidateSetMoves = list(self.makeAllMovesMlp(boardToPlay, setMoves, MlpModel))
+
+				move = random.choice(candidateSetMoves)
+				boardToPlay.push(move)
+
+				print(boardToPlay)
+				print "-------------------------------"
+				time.sleep(0.4)
+
 			result = boardToPlay.result()
 			self.updateGameStatsWhite(result)
 
