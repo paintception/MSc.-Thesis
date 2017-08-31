@@ -1,11 +1,15 @@
 from copy import deepcopy
+
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import Dropout
-from keras.layers import Activation
 from keras.models import model_from_json
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import SGD
+from keras.layers.convolutional import Convolution2D
+from keras.layers.core import Activation
+from keras.layers.core import Flatten
+from keras.layers.core import Dropout
 
 import time
 import chess
@@ -23,31 +27,80 @@ class GameHandler(object):
 		self.MlpWins = 0
 		self.CnnWins = 0
 		self.Draws = 0
+		self.width = 8
+		self.height = 8
+		self.channels = 16
+		self.ImportantSquareSet = chess.SquareSet(
+			chess.BB_D4 | chess.BB_D5 |
+			chess.BB_C4 | chess.BB_C5 |
+			chess.BB_E4 | chess.BB_E5 |
+			chess.BB_F2 | chess.BB_F7 |
+			chess.BB_H2 | chess.BB_H7
+			)
+
+		self.SquareSet = chess.SquareSet(
+			chess.BB_A1 | chess.BB_A2 | chess.BB_A3 | chess.BB_A4 | chess.BB_A5 |
+			chess.BB_A6 | chess.BB_A7 | chess.BB_A8 | 
+			chess.BB_B1 | chess.BB_B2 | chess.BB_B3 | chess.BB_B4 | chess.BB_B5 |
+			chess.BB_B6 | chess.BB_B7 | chess.BB_B8 | 
+			chess.BB_C1 | chess.BB_C2 | chess.BB_C3 | chess.BB_C4 | chess.BB_C5 |
+			chess.BB_C6 | chess.BB_C7 | chess.BB_C8 | 
+			chess.BB_D1 | chess.BB_D2 | chess.BB_D3 | chess.BB_D4 | chess.BB_D5 |
+			chess.BB_D6 | chess.BB_D7 | chess.BB_D8 | 
+			chess.BB_A1 | chess.BB_E2 | chess.BB_E3 | chess.BB_E4 | chess.BB_E5 |
+			chess.BB_E6 | chess.BB_E7 | chess.BB_E8 | 
+			chess.BB_F1 | chess.BB_F2 | chess.BB_F3 | chess.BB_F4 | chess.BB_F5 |
+			chess.BB_F6 | chess.BB_F7 | chess.BB_F8 | 
+			chess.BB_G1 | chess.BB_G2 | chess.BB_G3 | chess.BB_G4 | chess.BB_G5 |
+			chess.BB_G6 | chess.BB_G7 | chess.BB_G8 | 
+			chess.BB_H1 | chess.BB_H2 | chess.BB_H3 | chess.BB_H4 | chess.BB_H5 |
+			chess.BB_H6 | chess.BB_H7 | chess.BB_H8
+			)
 
 	def evaluatePositionMlp(self, board, model, tmp_move, boardToPlay):
-
-		optimalMoves = []
 
 		pos = np.expand_dims(board, axis=0)
 		out = model.predict(pos)
 
-		#print np.argmax(out)
 		return np.argmax(out)
+
+	def evaluatePositionCnn(self, board, model, tmp_move, boardToPlay):
+
+		pos = np.expand_dims(board, axis=0)
+		out = model.predict(pos)
+
+		return np.argmax(out)
+
+	def loadCnnClassificationModel(self):
+
+		CnnModel = Sequential()
+		CnnModel.add(Convolution2D(20,5,5, border_mode="same", input_shape=(self.width, self.height, self.channels)))
+		CnnModel.add(Activation("elu"))
+		CnnModel.add(Convolution2D(50,3,3, border_mode="same", input_shape=(self.width, self.height, self.channels)))
+		CnnModel.add(Activation("elu"))
+		CnnModel.add(Dropout(0.25))
+		CnnModel.add(Flatten())
+		CnnModel.add(Dense(250, activation="elu"))
+		CnnModel.add(Dense(12))
+		CnnModel.add(Activation("softmax"))
+		CnnModel.load_weights('/home/matthia/Desktop/ThesisStuff/CnnWeights/Weights/CNNWeights.h5')
+
+		return CnnModel
 
 	def loadMlpClassificationModel(self):
 
-		model = Sequential()
-		model.add(Dense(2048, input_dim=self.MlpDimension, init='normal', activation='elu'))
-		model.add(Dropout(0.2))
-		model.add(Dense(2048, input_dim=self.MlpDimension, init='normal', activation='elu'))
-		model.add(Dropout(0.2))
-		model.add(Dense(1050, input_dim=self.MlpDimension, init='normal', activation='elu'))
-		model.add(Dropout(0.2))
-		model.add(Dense(8, init='normal', activation='elu'))
-		#model.add(Activation("softmax"))
-		model.load_weights("/home/matthia/Desktop/Bobby/8Classes/Bobbyweights.h5")
+		MlpModel = Sequential()
+		MlpModel.add(Dense(2048, input_dim=self.MlpDimension, init='normal', activation='elu'))
+		MlpModel.add(Dropout(0.2))
+		MlpModel.add(Dense(2048, input_dim=self.MlpDimension, init='normal', activation='elu'))
+		MlpModel.add(Dropout(0.2))
+		MlpModel.add(Dense(1050, input_dim=self.MlpDimension, init='normal', activation='elu'))
+		MlpModel.add(Dropout(0.2))
+		MlpModel.add(Dense(8, init='normal', activation='elu'))
+		MlpModel.add(Activation("softmax"))
+		MlpModel.load_weights("/home/matthia/Desktop/Bobby/8Classes/Bobbyweights.h5")
 
- 		return model
+ 		return MlpModel
 
  	def splitter(self, inputStr, black):
 
@@ -83,8 +136,67 @@ class GameHandler(object):
 
 		return BitMappedBoard
 
- 	def loadCnnModel(self):
- 		pass
+	def shapeBoardCnn(self, board):
+
+		CheckedInfo = self.is_checked(board)
+
+		SquareAttackers = []
+		PinnedSquares = []
+
+		ImportantAttackers = []
+
+		for square in self.SquareSet:
+			if board.is_attacked_by(chess.WHITE, square):
+				SquareAttackers.append(1)
+			elif board.is_attacked_by(chess.BLACK, square):
+				SquareAttackers.append(-1)
+			else:
+				SquareAttackers.append(0)
+
+			if board.is_pinned(chess.WHITE, square):
+				PinnedSquares.append(1)
+			elif board.is_pinned(chess.BLACK, square):
+				PinnedSquares.append(-1)
+			else:
+				PinnedSquares.append(0)
+
+		if board.turn is True:
+			SquareAttackers.append(1)
+			PinnedSquares.append(1)
+
+		elif board.turn is False:
+			SquareAttackers.append(-1)
+			PinnedSquares.append(-1)
+
+		for ImportantSquare in self.ImportantSquareSet:
+			WhiteAttackers = board.attackers(chess.WHITE, ImportantSquare)
+			BlackAttackers = board.attackers(chess.BLACK, ImportantSquare)
+
+			if len(WhiteAttackers) > len(BlackAttackers):
+				ImportantAttackersFeatures = [1] * 64
+			elif len(WhiteAttackers) < len(BlackAttackers):
+				ImportantAttackersFeatures = [-1] * 64
+			else:
+				ImportantAttackersFeatures = [0] * 64
+
+		simpleBoard = self.shapeBoardMlp(board)
+	
+		ConvfeaturedBoard = simpleBoard + CheckedInfo+SquareAttackers+PinnedSquares+ImportantAttackersFeatures
+
+		return ConvfeaturedBoard
+
+	def is_checked(self, board):
+
+		if board.is_check() and board.turn is True:
+			CheckedInfo = [-1] * 64
+
+		elif board.is_check() and board.turn is False:
+			CheckedInfo = [1] * 64
+
+		elif not board.is_check():
+			CheckedInfo = [0] * 64
+
+		return CheckedInfo
 
 	def loadStartingPositions(self, position):
 		return chess.Board(fen=position)
@@ -117,10 +229,10 @@ class GameHandler(object):
 		else:
 			pass
 
-	def makeAllMovesMlp(self, boardToPlay, setMoves, MlpModel):
+	def makeCandidateMovesMlp(self, boardToPlay, setMoves, MlpModel):
 		
-		optimalOutput = 0
-		candidateMoves = []
+		candidateMovesMlp = []
+		optimalOutput = 0 
 
 		while len(setMoves) != 0:
 			tmp_move = random.choice(setMoves)
@@ -132,61 +244,66 @@ class GameHandler(object):
 			setMoves.remove(tmp_move)
 
 			if out > optimalOutput:
-				candidateMoves = [] 
+				candidateMovesMlp = [] 
 				optimalOutput = out
-				candidateMoves.append(tmp_move)
+				candidateMovesMlp.append(tmp_move)
 			
 			elif out == optimalOutput:
-				candidateMoves.append(tmp_move)
+				candidateMovesMlp.append(tmp_move)
 
-			#print "Output to beat: ", optimalOutput
-			#print "Candidate Moves: ", candidateMoves
+		return candidateMovesMlp
 
-		return candidateMoves
+	def makeCandidateMovesCnn(self, boardToPlay, setMoves, CnnModel):
 
-	def startGame(self, boardToPlay, MlpModel):
+		candidateMovesCnn = []
+		optimalOutput = 0 
 
-		#White = self.chooseWhite()
+		while len(setMoves) != 0:
+			tmp_move = random.choice(setMoves)
 
-		White = 0
+			tmpBoard = deepcopy(boardToPlay)
 
-		if White == 0:	#Mlp is White
+			tmpBoard.push(tmp_move)
+			shapedBoardCnn = np.asarray(self.shapeBoardCnn(tmpBoard))
+
+			shapedBoardCnn = np.reshape(shapedBoardCnn, (8,8,16))
+
+			out = self.evaluatePositionCnn(shapedBoardCnn, CnnModel, tmp_move, tmpBoard)
+			setMoves.remove(tmp_move)
+
+			if out > optimalOutput:
+				candidateMovesCnn = [] 
+				optimalOutput = out
+				candidateMovesCnn.append(tmp_move)
 			
-			WhitePlayer = MlpModel
+			elif out == optimalOutput:
+				candidateMovesCnn.append(tmp_move)
 
-			while not boardToPlay.is_game_over(claim_draw=True):
+		return candidateMovesCnn
+		
+	def startGame(self, boardToPlay, MlpModel, CnnModel):
 
-				setMoves = list(self.createSetMoves(boardToPlay))
-				candidateSetMoves = list(self.makeAllMovesMlp(boardToPlay, setMoves, MlpModel))
+		while not boardToPlay.is_game_over(claim_draw=True):
 
-				move = random.choice(candidateSetMoves)
-				boardToPlay.push(move)
+			setMoves = list(self.createSetMoves(boardToPlay))
+			#MlpcandidateSetMoves = list(self.makeCandidateMovesMlp(boardToPlay, setMoves, MlpModel))
+			Cnncandidatesetmoves = list(self.makeCandidateMovesCnn(boardToPlay, setMoves, CnnModel))
 
-				print(boardToPlay)
-				print "-------------------------------"
-				time.sleep(0.4)
+			move = random.choice(Cnncandidatesetmoves)	#if multiple moves have same evaluation choose a random one
+	
+			boardToPlay.push(move)
 
-			result = boardToPlay.result()
-			self.updateGameStatsWhite(result)
+			print(boardToPlay)
+			print "-------------------------------"
+			time.sleep(0.4)
 
-		"""
-		elif White == 1: #CNN is White
-			
-			while not boardToPlay.is_game_over(claim_draw=True):
-
-				setMoves = self.createSetMoves(boardToPlay)
-				#move = random.choice(list(setMoves))
-
-				for move in setMoves:
-					self.makeMove() 
-
-			result = boardToPlay.result()
-			self.updateGameStatsBlack(result)
-		"""
+		result = boardToPlay.result()
+		self.updateGameStatsWhite(result)
 
 	def main(self):
 		
 		MlpModel = self.loadMlpClassificationModel()
+		CnnModel = self.loadCnnClassificationModel()
 
 		with open(self.StartingPositionsPath) as f:
 			individualPositions = f.readlines()
@@ -196,11 +313,12 @@ class GameHandler(object):
 			for i in xrange(0, self.NumberSimulationGames):
 				copiedBoard = deepcopy(boardToPlay)
 				
-				self.startGame(copiedBoard, MlpModel)
+				self.startGame(copiedBoard, MlpModel, CnnModel)
 
-		print "Amount of Draws: ", Gamer.Draws
-		print "Amount of MLP Wins: ", Gamer.MlpWins
-		print "Amount of CNN Wins: ", Gamer.CnnWins
+			print "Amount of Draws: ", Gamer.Draws
+			print "Amount of MLP Wins: ", Gamer.MlpWins
+			print "Amount of CNN Wins: ", Gamer.CnnWins
 
 Gamer = GameHandler()
 Gamer.main()
+
